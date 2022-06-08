@@ -1,0 +1,156 @@
+---
+title: 'Etude: Réserves de change et taux de change'
+author: "Karen JEAN-BAPTISTE"
+date: '2022-06-08'
+output:
+  word_document: default
+  html_document: default
+---
+
+# **Réserves de change et Taux de change**
+
+
+## **Introduction**
+
+Cette étude emploie la théorie de la causalité au sens de Granger pour analyser le relation entre le taux de change et les réserves nettes de change; d'une part, avec ceux de la BRH et d'autre part, avec ceux du système bancaire. Cette étude s'effectue au cours de la période 1980 à 2021 en se basant sur les données de la BRH.
+
+
+### Qu'entend-t-on par réserves de change?
+Les réserves de change sont des réserves en monnaie étrangères ou en or détenues par les Banques centrales. Par ailleurs, les réserves de change constitue une épargne permettant à un pays de continuer à importer malgré les aléas du commerce internationnal.
+
+
+### Réserves de change et Taux de change
+Les réserves de change peuvent permettre de stabiliser le taux de change. en effet le taux de change est le prix d'une monnaie exprimé dans une autre monnaie. Par conséquent, en utilisant ses réserves de change, une banque centrale peut influer sur les taux de change.
+
+
+### Importation des données de la BRH
+
+Commençons par importer les données de la BRH:
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readxl)
+agregatsmon <- read_excel("~/Fichiers/AREN/Session2022J/Devoir1.CreditBancaire/DEVOIR.FINAL1/agregatsmon.xls", 
+    col_types = c("date", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric"))
+View(agregatsmon)
+```
+
+
+### Choisissons les trois(3) variables sur lesquels se portera l'étude
+
+```{r, echo=FALSE}
+library(tidyverse)
+AMbrh=agregatsmon%>%select(Dates,`TAUX DE CHANGE BRH`,`Reserves nettes de change BRH`,
+                           `Reserves nettes de change syst. Banc.`)
+print(AMbrh)
+```
+
+
+## Vérifioins la relation à partir des données empiriques
+
+Pour cette section, nous nous baserons sur les données de la série temporelle créée à partir des informations de la BRH. Cette approche se fera en trois étapes: test de stationnarité en différence première ou deuxième, test de causalité de Granger et enfin un modèle de régression linéaire à variables multiples.
+
+
+### Série temporelle (représentation graphique)
+
+Une série dite chronologique ou temporelle est un ensemble de données ou d'observations qui se réfèrent à une ou plusieurs variables et sont classés chronologiquement. En économie, toutes les variables étant collectées dans le temps, il est donc nécessaire de pouvoir constater l'évolution d'une variable à travers le temsp afin de pouvoir étudier sa tendance.
+
+
+### Création de la série temporelle
+
+```{r, echo=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(tseries)
+ts_AMbrh=ts(data=AMbrh[,1],start=c(1980,09),frequency=12)
+plot(ts_AMbrh,main="Graph01-Série temporelle")
+```
+
+
+On effectue le test de stationnarité pour vérifier si une série temporelle est stationnaire ou non, c'est-à-dire si ses propriétés statistiques (espérance,variance,...) varient dans le temps ou non.
+Etant donné que dans le cas qui nous interesse (voir Graph01), nous remarquons que les données évoluent dans le temps. La série n'est donc pas stationnaire en niveau.
+
+Par conséquent, vérifions la stationnarité en différence première ou deuxième.
+
+
+### Stationnarité en différence première
+
+```{r,echo=FALSE}
+PDiff=diff(ts_AMbrh,differences=1)
+plot(PDiff,main="Graph02-Différence première")
+```
+
+
+### Stationnarité en différence deuxième
+
+```{r, echo=FALSE}
+DDiff=diff(ts_AMbrh,differences=2)
+plot(DDiff,main="Graph03-Différence deuxième")
+```
+
+
+### Le test de causalité au sens de Granger
+
+```{r,echo=FALSE}
+library(lmtest)
+GrangerAB=grangertest(`TAUX DE CHANGE BRH`
+                      ~`Reserves nettes de change BRH`,order=3,data=AMbrh)
+GrangerAC=grangertest(`TAUX DE CHANGE BRH`
+                      ~`Reserves nettes de change syst. Banc.`,order=3,data=AMbrh)
+View(GrangerAB)
+View(GrangerAC)
+print(GrangerAB)
+print(GrangerAC)
+
+plot(GrangerAB,main="Grap04")
+plot(GrangerAC,main="Graph05")
+```
+
+
+Le test de causalité de Granger est un test d'hypothèse statistique pour déterminer si une série chronologique est utile pour en prévoir une autre.
+
+Si p-valeur est supérieur au seuil critique, on choisit l'hypothèse nulle. 
+H0: les réserves de change causent (impactent fortement) le taux de change.
+**p-valeur > F**
+**On en conclut que les réserves de change impactent fortement le taux de cahnge.**
+
+### La régression linéaire
+
+```{r, echo=FALSE}
+library(lmtest)
+Reg_AMbrh=lm(`TAUX DE CHANGE BRH`~`Reserves nettes de change BRH`
+             +`Reserves nettes de change syst. Banc.`,data=AMbrh)
+print(Reg_AMbrh)
+plot(Reg_AMbrh,main="Graph06-Régression linéaire")
+```
+
+
+## **Coclusion**
+
+Notre étude nous a montré que les réserves de change impactent fortement le taux de change, que ce sois au niveau de la BRH ou du système bancaire.
+
+
